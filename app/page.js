@@ -39,31 +39,31 @@ export default function Home() {
   useEffect(() => {
     // Initial load
     fetchUsersAndEvents();
-    
+
     // Setup SSE for immediate user change notifications
-    const eventSource = new EventSource('/api/sse');
-    
+    const eventSource = new EventSource("/api/sse");
+
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.name && typeof data.checked === 'boolean') {
-        console.log('User selection changed via SSE - fetching fresh data');
+      if (data.name && typeof data.checked === "boolean") {
+        console.log("User selection changed via SSE - fetching fresh data");
         fetchUsersAndEvents();
       }
     };
-    
+
     // Countdown timer every second
     const timerInterval = setInterval(() => {
-      setNextUpdateIn(prev => {
+      setNextUpdateIn((prev) => {
         if (prev <= 1) {
           // Time's up - fetch fresh users and events (5-minute polling)
-          console.log('5-minute timer: fetching fresh users and events');
+          console.log("5-minute timer: fetching fresh users and events");
           fetchUsersAndEvents();
           return 300; // Reset to 5 minutes
         }
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => {
       eventSource.close();
       clearInterval(timerInterval);
@@ -81,22 +81,20 @@ export default function Home() {
 
   const fetchUsersAndEvents = async () => {
     try {
-      const response = await fetch('/api/selected-users');
+      const response = await fetch("/api/selected-users");
       const data = await response.json();
-      
+
       if (data.selectedUsers) {
         setSelectedUsers(data.selectedUsers);
         setNextUpdateIn(300); // Reset timer to 5 minutes
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
     }
   };
 
-
-
   const refreshSlots = async () => {
-    console.log('Manual refresh triggered');
+    console.log("Manual refresh triggered");
     await fetchUsersAndEvents();
   };
 
@@ -211,7 +209,10 @@ export default function Home() {
     } else if (slot.availability.freePercentage === 0) {
       return (
         <div className="slot-content vertical">
-          <div className="busy-portion-vertical" style={{ height: "100%" }}></div>
+          <div
+            className="busy-portion-vertical"
+            style={{ height: "100%" }}
+          ></div>
         </div>
       );
     } else {
@@ -241,7 +242,11 @@ export default function Home() {
           box-sizing: border-box;
         }
         body {
-          background: linear-gradient(135deg, #000000 0%, #111111 100%) !important;
+          background: linear-gradient(
+            135deg,
+            #000000 0%,
+            #111111 100%
+          ) !important;
           font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
           color: #e2e8f0 !important;
         }
@@ -485,27 +490,34 @@ export default function Home() {
       `}</style>
 
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "25px",
+          }}
+        >
           <div>
             <h1>Available Time Slots</h1>
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
-              Next update in: {formatTime(nextUpdateIn)}
+            <div style={{ fontSize: "12px", color: "#888", marginTop: "5px" }}>
+              Last updated in: {formatTime(nextUpdateIn)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+            <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
               Please make sure to refresh to get the latest slots available
             </div>
           </div>
-          <button 
+          <button
             onClick={refreshSlots}
             style={{
-              padding: '10px 20px',
-              background: 'linear-gradient(145deg, #2a2a2a, #1a1a1a)',
-              border: '1px solid #404040',
-              borderRadius: '8px',
-              color: '#e2e8f0',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
+              padding: "10px 20px",
+              background: "linear-gradient(145deg, #2a2a2a, #1a1a1a)",
+              border: "1px solid #404040",
+              borderRadius: "8px",
+              color: "#e2e8f0",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "500",
             }}
           >
             Refresh Slots
@@ -526,7 +538,7 @@ export default function Home() {
               style={{
                 gridTemplateColumns: `60px repeat(${selectedUsers.length}, 1fr)`,
                 position: "relative",
-                minHeight: "500px"
+                minHeight: "500px",
               }}
             >
               {loadingSlots && (
@@ -542,27 +554,25 @@ export default function Home() {
                 </div>
               ))}
 
-              {loadingSlots ? (
-                times.map((time) => (
-                  <React.Fragment key={time.hour}>
-                    <div className="time-label">{time.label}</div>
-                    {selectedUsers.map((user) => (
-                      <div key={user.id} className="slot-cell"></div>
-                    ))}
-                  </React.Fragment>
-                ))
-              ) : (
-                timeSlots.map((slot) => (
-                  <React.Fragment key={slot.time.hour}>
-                    <div className="time-label">{slot.time.label}</div>
-                    {slot.userSlots.map((userSlot) => (
-                      <div key={userSlot.userId} className="slot-cell">
-                        {renderSlotContent(userSlot)}
-                      </div>
-                    ))}
-                  </React.Fragment>
-                ))
-              )}
+              {loadingSlots
+                ? times.map((time) => (
+                    <React.Fragment key={time.hour}>
+                      <div className="time-label">{time.label}</div>
+                      {selectedUsers.map((user) => (
+                        <div key={user.id} className="slot-cell"></div>
+                      ))}
+                    </React.Fragment>
+                  ))
+                : timeSlots.map((slot) => (
+                    <React.Fragment key={slot.time.hour}>
+                      <div className="time-label">{slot.time.label}</div>
+                      {slot.userSlots.map((userSlot) => (
+                        <div key={userSlot.userId} className="slot-cell">
+                          {renderSlotContent(userSlot)}
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  ))}
             </div>
           )}
         </div>
