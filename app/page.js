@@ -40,37 +40,32 @@ export default function Home() {
     // Initial load
     fetchUsersAndEvents();
 
-    // Auto-refresh trigger check every 3 seconds
-    let lastRefreshTime = 0;
-    const refreshCheckInterval = setInterval(async () => {
-      try {
-        const response = await fetch('/api/trigger-refresh', { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.timestamp > lastRefreshTime) {
-          console.log('Auto-refresh triggered by user selection change');
-          lastRefreshTime = data.timestamp;
-          await refreshSlots();
-        }
-      } catch (error) {
-        // Ignore errors
+    // Setup SSE for immediate user change notifications
+    const eventSource = new EventSource("/api/sse");
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.name && typeof data.checked === "boolean") {
+        console.log("User selection changed via SSE - fetching fresh data");
+        fetchUsersAndEvents();
       }
-    }, 3000);
+    };
 
     // Countdown timer every second
     const timerInterval = setInterval(() => {
       setNextUpdateIn((prev) => {
         if (prev <= 1) {
+          // Time's up - fetch fresh users and events (5-minute polling)
           console.log("5-minute timer: fetching fresh users and events");
           fetchUsersAndEvents();
-          return 300;
+          return 300; // Reset to 5 minutes
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => {
-      clearInterval(refreshCheckInterval);
+      eventSource.close();
       clearInterval(timerInterval);
     };
   }, []);
