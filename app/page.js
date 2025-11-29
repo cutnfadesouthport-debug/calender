@@ -236,9 +236,7 @@ export default function Home() {
               className="free-portion-vertical"
               style={{ height: `${freePercentage}%` }}
             >
-              <span className="time-text">
-                {formatAvailableTime(hour, businessMinutes, slot.events)}
-              </span>
+              <span className="time-text">Available at 5:00 PM</span>
             </div>
             <div className="not-available-slot" style={{ height: "50%" }}>
               <span className="not-available-text">Not Available</span>
