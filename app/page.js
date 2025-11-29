@@ -40,15 +40,24 @@ export default function Home() {
     // Initial load
     fetchUsersAndEvents();
     
-    // Poll for user changes every 2 seconds (quick check)
-    const userInterval = setInterval(checkUserChanges, 2000);
+    // Setup SSE for immediate user change notifications
+    const eventSource = new EventSource('/api/sse');
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.name && typeof data.checked === 'boolean') {
+        console.log('User selection changed via SSE - fetching fresh data');
+        fetchUsersAndEvents();
+      }
+    };
     
     // Countdown timer every second
     const timerInterval = setInterval(() => {
       setNextUpdateIn(prev => {
         if (prev <= 1) {
-          // Time's up - fetch fresh data
-          updateEventsOnly();
+          // Time's up - fetch fresh users and events (5-minute polling)
+          console.log('5-minute timer: fetching fresh users and events');
+          fetchUsersAndEvents();
           return 300; // Reset to 5 minutes
         }
         return prev - 1;
@@ -56,7 +65,7 @@ export default function Home() {
     }, 1000);
     
     return () => {
-      clearInterval(userInterval);
+      eventSource.close();
       clearInterval(timerInterval);
     };
   }, []);
@@ -84,33 +93,7 @@ export default function Home() {
     }
   };
 
-  const checkUserChanges = async () => {
-    try {
-      const response = await fetch('/api/selected-users');
-      const data = await response.json();
-      
-      if (data.selectedUsers) {
-        const currentIds = selectedUsers.map(u => u.id).sort().join(',');
-        const newIds = data.selectedUsers.map(u => u.id).sort().join(',');
-        
-        if (currentIds !== newIds) {
-          console.log('User selection changed - fetching fresh data');
-          setSelectedUsers(data.selectedUsers);
-          setNextUpdateIn(300); // Only reset timer when users actually change
-        }
-        // Don't reset timer if users haven't changed
-      }
-    } catch (error) {
-      console.error('Error checking user changes:', error);
-    }
-  };
 
-  const updateEventsOnly = async () => {
-    if (selectedUsers.length > 0) {
-      console.log('Updating events (5-minute poll)');
-      await updateTimeSlots();
-    }
-  };
 
   const refreshSlots = async () => {
     console.log('Manual refresh triggered');
