@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import React from "react";
+import { syncUsers } from "@/lib/syncUsers";
+import { getOpeningHours } from "@/lib/getOpeningHours";
 
 export default function Home() {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [nextUpdateIn, setNextUpdateIn] = useState(300); // 5 minutes in seconds
+  const [syncMessage, setSyncMessage] = useState("");
+  const [userCalendars, setUserCalendars] = useState([]);
 
   const times = [
     { label: "12 AM", hour: 0 },
@@ -81,12 +85,18 @@ export default function Home() {
 
   const fetchUsersAndEvents = async () => {
     try {
-      const response = await fetch("/api/selected-users");
-      const data = await response.json();
+      const [usersResponse, calendarsResponse] = await Promise.all([
+        fetch("/api/selected-users"),
+        fetch("/api/calendars"),
+      ]);
 
-      if (data.selectedUsers) {
-        setSelectedUsers(data.selectedUsers);
-        setNextUpdateIn(300); // Reset timer to 5 minutes
+      const usersData = await usersResponse.json();
+      const calendarsData = await calendarsResponse.json();
+
+      if (usersData.selectedUsers) {
+        setSelectedUsers(usersData.selectedUsers);
+        setUserCalendars(calendarsData.calendars || []);
+        setNextUpdateIn(300);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -96,6 +106,17 @@ export default function Home() {
   const refreshSlots = async () => {
     console.log("Manual refresh triggered");
     await fetchUsersAndEvents();
+  };
+
+  const handleSyncUsers = async () => {
+    try {
+      const result = await syncUsers();
+      setSyncMessage(`✓ Synced ${result.count} users`);
+      setTimeout(() => setSyncMessage(""), 3000);
+    } catch (error) {
+      setSyncMessage("✗ Sync failed");
+      setTimeout(() => setSyncMessage(""), 3000);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -197,7 +218,20 @@ export default function Home() {
   };
 
   const renderSlotContent = (slot, hour) => {
-    if (hour < 9 || hour > 17) {
+    const today = new Date().getDay();
+    const userCalendar = userCalendars.find(
+      (cal) => cal.userId === slot.userId
+    );
+    const openingHours = userCalendar
+      ? getOpeningHours(userCalendar.openHours, today)
+      : null;
+
+    if (
+      !openingHours ||
+      openingHours.openHour === null ||
+      hour < openingHours.openHour ||
+      hour >= openingHours.closeHour
+    ) {
       return (
         <div className="slot-content vertical">
           <div className="not-available-slot" style={{ height: "100%" }}>
@@ -628,21 +662,50 @@ export default function Home() {
               Please make sure to refresh to get the latest slots available
             </div>
           </div>
-          <button
-            onClick={refreshSlots}
-            style={{
-              padding: "10px 20px",
-              background: "linear-gradient(145deg, #2a2a2a, #1a1a1a)",
-              border: "1px solid #404040",
-              borderRadius: "8px",
-              color: "#e2e8f0",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "500",
-            }}
-          >
-            Refresh Slots
-          </button>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {syncMessage && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: syncMessage.includes("✓") ? "#10b981" : "#ef4444",
+                }}
+              >
+                {syncMessage}
+              </span>
+            )}
+
+            {/* <button
+              onClick={handleSyncUsers}
+              style={{
+                padding: "10px 20px",
+                background: "linear-gradient(145deg, #059669, #047857)",
+                border: "1px solid #10b981",
+                borderRadius: "8px",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Sync Users
+            </button> */}
+
+            <button
+              onClick={refreshSlots}
+              style={{
+                padding: "10px 20px",
+                background: "linear-gradient(145deg, #2a2a2a, #1a1a1a)",
+                border: "1px solid #404040",
+                borderRadius: "8px",
+                color: "#e2e8f0",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Refresh Slots
+            </button>
+          </div>
         </div>
 
         <div className="time-slots">
