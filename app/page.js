@@ -18,56 +18,80 @@ const page = () => {
   }, []);
 
   const checkedUsers = users.filter((u) => u.checked);
-  const uncheckedUsers = users.filter((u) => !u.checked);
 
   return (
-    <div className="w-full h-screen bg-black text-white flex flex-col">
-      <h1 className="text-2xl font-bold py-4 text-center">
-        User Status Dashboard
+    <div
+      style={{
+        background: "linear-gradient(135deg, #000000 0%, #111111 100%)",
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        color: "#e2e8f0",
+        width: "100%",
+        minHeight: "100vh",
+        padding: "20px",
+        borderRadius: "16px",
+        boxShadow:
+          "0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "24px",
+          paddingBottom: "15px",
+          borderBottom: "2px solid #333333",
+          marginBottom: "25px",
+          color: "#ffffff",
+          fontWeight: "600",
+          textShadow: "0 2px 4px rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        Available Users
       </h1>
 
-      <div className="flex-1 flex gap-4 px-4 pb-4">
-        <div className="flex-1 bg-green-900 rounded-lg p-4 flex flex-col">
-          <h2 className="text-lg font-bold mb-3 text-green-300">
-            Checked Users ({checkedUsers.length})
-          </h2>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {checkedUsers.map((user) => (
-              <div
-                key={user._id}
-                className="bg-green-800 p-2 rounded text-green-100 text-sm font-semibold"
-              >
-                ✅ {user.name}
-              </div>
-            ))}
-            {checkedUsers.length === 0 && (
-              <div className="text-green-400 text-sm text-center mt-4">
-                No users checked
-              </div>
-            )}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          borderBottom: "1px solid #374151",
+          paddingBottom: "20px",
+          marginBottom: "20px",
+        }}
+      >
+        {checkedUsers.map((user) => (
+          <div
+            key={user._id}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "10px 16px",
+              background: "linear-gradient(145deg, #2a2a2a, #1a1a1a)",
+              border: "1px solid #404040",
+              borderRadius: "8px",
+              whiteSpace: "nowrap",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
+              fontSize: "14px",
+              color: "#e2e8f0",
+              fontWeight: "500",
+            }}
+          >
+            {user.name}
           </div>
-        </div>
-
-        <div className="flex-1 bg-red-900 rounded-lg p-4 flex flex-col">
-          <h2 className="text-lg font-bold mb-3 text-red-300">
-            Unchecked Users ({uncheckedUsers.length})
-          </h2>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {uncheckedUsers.map((user) => (
-              <div
-                key={user._id}
-                className="bg-red-800 p-2 rounded text-red-100 text-sm font-semibold"
-              >
-                ❌ {user.name}
-              </div>
-            ))}
-            {uncheckedUsers.length === 0 && (
-              <div className="text-red-400 text-sm text-center mt-4">
-                All users checked
-              </div>
-            )}
+        ))}
+        {checkedUsers.length === 0 && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "30px",
+              color: "#94a3b8",
+              fontSize: "16px",
+              fontWeight: "500",
+            }}
+          >
+            No users available
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
