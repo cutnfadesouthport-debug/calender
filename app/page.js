@@ -139,26 +139,35 @@ const page = () => {
     return { hours, schedule: daySchedule };
   };
 
-  const isHourAvailable = (userName, hour) => {
+  const getHourAvailability = (userName, hour) => {
     const calendar = getUserCalendar(userName);
-    if (!calendar) return false;
+    if (!calendar) return { availableMinutes: 0, totalMinutes: 60 };
 
     const { dayOfWeek } = getTodayInfo();
     const daySchedule = calendar.openHours?.find((schedule) =>
       schedule.daysOfTheWeek.includes(dayOfWeek)
     );
 
-    if (!daySchedule) return false;
+    if (!daySchedule) return { availableMinutes: 0, totalMinutes: 60 };
+
+    let availableMinutes = 0;
+    const hourStart = hour * 60; // Start of this hour in minutes
+    const hourEnd = (hour + 1) * 60; // End of this hour in minutes
 
     for (const timeSlot of daySchedule.hours) {
-      if (hour >= timeSlot.openHour && hour < timeSlot.closeHour) {
-        return true;
-      }
-      if (hour === timeSlot.closeHour && timeSlot.closeMinute > 0) {
-        return true;
+      const openTimeMinutes = timeSlot.openHour * 60 + timeSlot.openMinute;
+      const closeTimeMinutes = timeSlot.closeHour * 60 + timeSlot.closeMinute;
+
+      // Find overlap between this hour and the opening hours
+      const overlapStart = Math.max(hourStart, openTimeMinutes);
+      const overlapEnd = Math.min(hourEnd, closeTimeMinutes);
+
+      if (overlapStart < overlapEnd) {
+        availableMinutes += overlapEnd - overlapStart;
       }
     }
-    return false;
+
+    return { availableMinutes, totalMinutes: 60 };
   };
 
   return (
@@ -276,28 +285,100 @@ const page = () => {
                     }}
                   >
                     {(() => {
-                      const available = isHourAvailable(user.name, time.hour);
+                      const { availableMinutes, totalMinutes } =
+                        getHourAvailability(user.name, time.hour);
+                      const availablePercentage =
+                        (availableMinutes / totalMinutes) * 100;
+                      const unavailablePercentage = 100 - availablePercentage;
 
+                      if (availableMinutes === 0) {
+                        return (
+                          <div
+                            style={{
+                              background:
+                                "linear-gradient(180deg, #374151, #1f2937)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "11px",
+                              color: "#ffffff",
+                              fontWeight: "600",
+                              padding: "3px",
+                              textAlign: "center",
+                              height: "100%",
+                              minHeight: "50px",
+                            }}
+                          >
+                            <span>Closed</span>
+                          </div>
+                        );
+                      }
+
+                      if (availableMinutes === 60) {
+                        return (
+                          <div
+                            style={{
+                              background:
+                                "linear-gradient(180deg, #10b981, #059669)",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "11px",
+                              color: "#ffffff",
+                              fontWeight: "600",
+                              padding: "3px",
+                              textAlign: "center",
+                              height: "100%",
+                              minHeight: "50px",
+                            }}
+                          >
+                            <span>60min</span>
+                          </div>
+                        );
+                      }
+
+                      // Partial availability - show both available and unavailable portions
                       return (
                         <div
                           style={{
-                            background: available
-                              ? "linear-gradient(180deg, #10b981, #059669)"
-                              : "linear-gradient(180deg, #374151, #1f2937)",
-                            cursor: available ? "pointer" : "default",
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "11px",
-                            color: "#ffffff",
-                            fontWeight: "600",
-                            padding: "3px",
-                            textAlign: "center",
+                            flexDirection: "column",
                             height: "100%",
                             minHeight: "50px",
                           }}
                         >
-                          <span>{available ? "Available" : "Closed"}</span>
+                          {unavailablePercentage > 0 && (
+                            <div
+                              style={{
+                                background:
+                                  "linear-gradient(180deg, #374151, #1f2937)",
+                                height: `${unavailablePercentage}%`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "9px",
+                                color: "#ffffff",
+                                fontWeight: "600",
+                              }}
+                            ></div>
+                          )}
+                          <div
+                            style={{
+                              background:
+                                "linear-gradient(180deg, #10b981, #059669)",
+                              cursor: "pointer",
+                              height: `${availablePercentage}%`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "9px",
+                              color: "#ffffff",
+                              fontWeight: "600",
+                            }}
+                          >
+                            <span>{availableMinutes}min</span>
+                          </div>
                         </div>
                       );
                     })()}
