@@ -177,19 +177,60 @@ const page = () => {
           overflow: "hidden",
         }}
       >
-        <h1
+        <div
           style={{
-            fontSize: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             paddingBottom: "15px",
             borderBottom: "2px solid #333333",
             marginBottom: "25px",
-            color: "#ffffff",
-            fontWeight: "600",
-            textShadow: "0 2px 4px rgba(0, 0, 0, 0.5)",
           }}
         >
-          Available Slots
-        </h1>
+          <h1
+            style={{
+              fontSize: "24px",
+              color: "#ffffff",
+              fontWeight: "600",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.5)",
+              margin: 0,
+            }}
+          >
+            Available Slots
+          </h1>
+          <button
+            onClick={() => {
+              fetch("/api/get-calendars")
+                .then((r) => r.json())
+                .then((data) => setCalendars(data.calendars || []))
+                .catch((error) => console.error("Error refreshing:", error));
+            }}
+            style={{
+              background: "linear-gradient(145deg, #10b981, #059669)",
+              border: "1px solid #047857",
+              borderRadius: "8px",
+              color: "#ffffff",
+              padding: "10px 16px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
+              transition: "all 0.3s ease",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background =
+                "linear-gradient(145deg, #059669, #047857)";
+              e.target.style.transform = "translateY(-2px)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background =
+                "linear-gradient(145deg, #10b981, #059669)";
+              e.target.style.transform = "translateY(0)";
+            }}
+          >
+            🔄 Refresh
+          </button>
+        </div>
 
         {checkedUsers.length > 0 ? (
           <div
