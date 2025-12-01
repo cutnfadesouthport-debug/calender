@@ -1,12 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static optimization for iframe compatibility
-  output: 'standalone',
-  
-  // Disable caching in development and iframe contexts
   generateEtags: false,
   
-  // Headers to prevent caching in iframes
   async headers() {
     return [
       {
@@ -33,17 +28,7 @@ const nextConfig = {
     ];
   },
 
-  // Webpack config to handle iframe issues
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Disable service worker in iframe
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-    return config;
-  },
+  turbopack: {},
 };
 
 export default nextConfig;
