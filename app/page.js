@@ -1041,6 +1041,23 @@ export default function Home() {
                                       justifyContent: "center",
                                       textAlign: "center",
                                       lineHeight: "1.2",
+                                      cursor:
+                                        blockLabel.type === "available"
+                                          ? "pointer"
+                                          : "default",
+                                    }}
+                                    title={
+                                      blockLabel.type === "available"
+                                        ? "Click to go to booking page"
+                                        : ""
+                                    }
+                                    onClick={() => {
+                                      if (blockLabel.type === "available") {
+                                        window.open(
+                                          "https://cutnfade.com.au/booking",
+                                          "_blank"
+                                        );
+                                      }
                                     }}
                                   >
                                     {blockLabel.label}
