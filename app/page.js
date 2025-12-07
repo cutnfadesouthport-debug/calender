@@ -655,21 +655,25 @@ export default function Home() {
         {allUsers.filter((u) => u.checked).length > 0 ? (
           <div
             style={{
-              maxHeight: "500px",
-              overflowY: "auto",
               border: "1px solid #333333",
               borderRadius: "12px",
               background: "rgba(20, 20, 20, 0.8)",
+              position: "relative",
             }}
-            className="custom-scrollbar"
           >
+            {/* Sticky Header */}
             <div
               style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
                 display: "grid",
                 gridTemplateColumns: `60px repeat(${
                   allUsers.filter((u) => u.checked).length
                 }, 1fr)`,
                 gap: 0,
+                background: "rgba(20, 20, 20, 0.95)",
+                backdropFilter: "blur(10px)",
               }}
             >
               <div
@@ -747,311 +751,332 @@ export default function Home() {
                     </div>
                   );
                 })}
+            </div>
 
-              {times.map((time) => (
-                <React.Fragment key={time.label}>
-                  <div
-                    style={{
-                      padding: "12px 10px",
-                      fontWeight: "500",
-                      color: "#888888",
-                      fontSize: "13px",
-                      borderBottom: "1px solid #333333",
-                      borderRight: "1px solid #333333",
-                      background: "linear-gradient(145deg, #1a1a1a, #0a0a0a)",
-                    }}
-                  >
-                    {time.label}
-                  </div>
-                  {allUsers
-                    .filter((u) => u.checked)
-                    .map((user) => {
-                      const schedule = userSchedules[user.userId];
-                      const events = userEvents[user.userId] || [];
+            {/* Scrollable Content */}
+            <div
+              style={{
+                maxHeight: "500px",
+                overflowY: "auto",
+              }}
+              className="custom-scrollbar"
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `60px repeat(${
+                    allUsers.filter((u) => u.checked).length
+                  }, 1fr)`,
+                  gap: 0,
+                }}
+              >
+                {times.map((time) => (
+                  <React.Fragment key={time.label}>
+                    <div
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: "500",
+                        color: "#888888",
+                        fontSize: "13px",
+                        borderBottom: "1px solid #333333",
+                        borderRight: "1px solid #333333",
+                        background: "linear-gradient(145deg, #1a1a1a, #0a0a0a)",
+                      }}
+                    >
+                      {time.label}
+                    </div>
+                    {allUsers
+                      .filter((u) => u.checked)
+                      .map((user) => {
+                        const schedule = userSchedules[user.userId];
+                        const events = userEvents[user.userId] || [];
 
-                      // Filter events for this specific user only
-                      const userSpecificEvents = events.filter(
-                        (event) => event.assignedUserId === user.userId
-                      );
+                        // Filter events for this specific user only
+                        const userSpecificEvents = events.filter(
+                          (event) => event.assignedUserId === user.userId
+                        );
 
-                      const dayNames = [
-                        "sunday",
-                        "monday",
-                        "tuesday",
-                        "wednesday",
-                        "thursday",
-                        "friday",
-                        "saturday",
-                      ];
-                      const today = dayNames[getTodayInfo().dayOfWeek];
-                      const todaySchedule = schedule?.find((s) =>
-                        s.rules?.some((rule) => rule.day === today)
-                      );
-                      const todayRule = todaySchedule?.rules?.find(
-                        (rule) => rule.day === today
-                      );
+                        const dayNames = [
+                          "sunday",
+                          "monday",
+                          "tuesday",
+                          "wednesday",
+                          "thursday",
+                          "friday",
+                          "saturday",
+                        ];
+                        const today = dayNames[getTodayInfo().dayOfWeek];
+                        const todaySchedule = schedule?.find((s) =>
+                          s.rules?.some((rule) => rule.day === today)
+                        );
+                        const todayRule = todaySchedule?.rules?.find(
+                          (rule) => rule.day === today
+                        );
 
-                      let openingHours = null;
-                      if (todayRule?.intervals) {
-                        // For simplicity, use first interval as main opening hours
-                        const interval = todayRule.intervals[0];
-                        openingHours = {
-                          openTime: interval.from,
-                          closeTime: interval.to,
-                        };
-                      }
+                        let openingHours = null;
+                        if (todayRule?.intervals) {
+                          // For simplicity, use first interval as main opening hours
+                          const interval = todayRule.intervals[0];
+                          openingHours = {
+                            openTime: interval.from,
+                            closeTime: interval.to,
+                          };
+                        }
 
-                      // Log user data
-                      console.log(`\n=== ${user.name} (${user.userId}) ===`);
-                      console.log("Opening Hours:", openingHours);
-                      console.log(
-                        "User Events:",
-                        userSpecificEvents.map((e) => ({
-                          title: e.title,
-                          start: e.startTime.split("T")[1].split("+")[0],
-                          end: e.endTime.split("T")[1].split("+")[0],
-                          assignedUserId: e.assignedUserId,
-                        }))
-                      );
+                        // Log user data
+                        console.log(`\n=== ${user.name} (${user.userId}) ===`);
+                        console.log("Opening Hours:", openingHours);
+                        console.log(
+                          "User Events:",
+                          userSpecificEvents.map((e) => ({
+                            title: e.title,
+                            start: e.startTime.split("T")[1].split("+")[0],
+                            end: e.endTime.split("T")[1].split("+")[0],
+                            assignedUserId: e.assignedUserId,
+                          }))
+                        );
 
-                      // Calculate available slots for this hour
-                      const hourSlots = [];
-                      if (openingHours) {
-                        const hourStart = `${time.hour
-                          .toString()
-                          .padStart(2, "0")}:00`;
-                        const hourEnd = `${(time.hour + 1)
-                          .toString()
-                          .padStart(2, "0")}:00`;
+                        // Calculate available slots for this hour
+                        const hourSlots = [];
+                        if (openingHours) {
+                          const hourStart = `${time.hour
+                            .toString()
+                            .padStart(2, "0")}:00`;
+                          const hourEnd = `${(time.hour + 1)
+                            .toString()
+                            .padStart(2, "0")}:00`;
 
-                        // Check if this hour falls within opening hours
-                        const hourStartMin = time.hour * 60;
-                        const openMin =
-                          parseInt(openingHours.openTime.split(":")[0]) * 60 +
-                          parseInt(openingHours.openTime.split(":")[1]);
-                        const closeMin =
-                          parseInt(openingHours.closeTime.split(":")[0]) * 60 +
-                          parseInt(openingHours.closeTime.split(":")[1]);
+                          // Check if this hour falls within opening hours
+                          const hourStartMin = time.hour * 60;
+                          const openMin =
+                            parseInt(openingHours.openTime.split(":")[0]) * 60 +
+                            parseInt(openingHours.openTime.split(":")[1]);
+                          const closeMin =
+                            parseInt(openingHours.closeTime.split(":")[0]) *
+                              60 +
+                            parseInt(openingHours.closeTime.split(":")[1]);
 
-                        // Check if hour is within opening hours or partially overlaps
-                        const hourEndMin = (time.hour + 1) * 60;
-                        const isWithinHours =
-                          hourStartMin < closeMin && hourEndMin > openMin;
+                          // Check if hour is within opening hours or partially overlaps
+                          const hourEndMin = (time.hour + 1) * 60;
+                          const isWithinHours =
+                            hourStartMin < closeMin && hourEndMin > openMin;
 
-                        if (isWithinHours) {
-                          // Find events that overlap with this hour
-                          const hourStartMinute = time.hour * 60;
-                          const hourEndMinute = (time.hour + 1) * 60;
+                          if (isWithinHours) {
+                            // Find events that overlap with this hour
+                            const hourStartMinute = time.hour * 60;
+                            const hourEndMinute = (time.hour + 1) * 60;
 
-                          // Build time blocks for this hour
-                          const blocks = [];
-                          let currentMin = 0;
+                            // Build time blocks for this hour
+                            const blocks = [];
+                            let currentMin = 0;
 
-                          // Sort events by start time
-                          const sortedEvents = [...userSpecificEvents]
-                            .map((event) => {
-                              const [startHour, startMin] = event.startTime
-                                .split("T")[1]
-                                .split("+")[0]
-                                .split(":")
-                                .map(Number);
-                              const [endHour, endMin] = event.endTime
-                                .split("T")[1]
-                                .split("+")[0]
-                                .split(":")
-                                .map(Number);
-                              return {
-                                startMinute: startHour * 60 + startMin,
-                                endMinute: endHour * 60 + endMin,
-                              };
-                            })
-                            .filter(
-                              (e) =>
-                                e.startMinute < hourEndMinute &&
-                                e.endMinute > hourStartMinute
-                            )
-                            .sort((a, b) => a.startMinute - b.startMinute);
+                            // Sort events by start time
+                            const sortedEvents = [...userSpecificEvents]
+                              .map((event) => {
+                                const [startHour, startMin] = event.startTime
+                                  .split("T")[1]
+                                  .split("+")[0]
+                                  .split(":")
+                                  .map(Number);
+                                const [endHour, endMin] = event.endTime
+                                  .split("T")[1]
+                                  .split("+")[0]
+                                  .split(":")
+                                  .map(Number);
+                                return {
+                                  startMinute: startHour * 60 + startMin,
+                                  endMinute: endHour * 60 + endMin,
+                                };
+                              })
+                              .filter(
+                                (e) =>
+                                  e.startMinute < hourEndMinute &&
+                                  e.endMinute > hourStartMinute
+                              )
+                              .sort((a, b) => a.startMinute - b.startMinute);
 
-                          for (const event of sortedEvents) {
-                            const eventStartInHour = Math.max(
-                              0,
-                              event.startMinute - hourStartMinute
-                            );
-                            const eventEndInHour = Math.min(
+                            for (const event of sortedEvents) {
+                              const eventStartInHour = Math.max(
+                                0,
+                                event.startMinute - hourStartMinute
+                              );
+                              const eventEndInHour = Math.min(
+                                60,
+                                event.endMinute - hourStartMinute
+                              );
+
+                              // Add available block before event
+                              if (currentMin < eventStartInHour) {
+                                blocks.push({
+                                  type: "available",
+                                  start: currentMin,
+                                  end: eventStartInHour,
+                                });
+                              }
+
+                              // Add booked block
+                              blocks.push({
+                                type: "booked",
+                                start: eventStartInHour,
+                                end: eventEndInHour,
+                              });
+                              currentMin = eventEndInHour;
+                            }
+
+                            // Handle remaining time based on closing hour
+                            const effectiveEnd = Math.min(
                               60,
-                              event.endMinute - hourStartMinute
+                              closeMin - hourStartMinute
                             );
 
-                            // Add available block before event
-                            if (currentMin < eventStartInHour) {
+                            if (currentMin < effectiveEnd) {
                               blocks.push({
                                 type: "available",
                                 start: currentMin,
-                                end: eventStartInHour,
+                                end: effectiveEnd,
                               });
                             }
 
-                            // Add booked block
-                            blocks.push({
-                              type: "booked",
-                              start: eventStartInHour,
-                              end: eventEndInHour,
-                            });
-                            currentMin = eventEndInHour;
-                          }
-
-                          // Handle remaining time based on closing hour
-                          const effectiveEnd = Math.min(
-                            60,
-                            closeMin - hourStartMinute
-                          );
-
-                          if (currentMin < effectiveEnd) {
-                            blocks.push({
-                              type: "available",
-                              start: currentMin,
-                              end: effectiveEnd,
-                            });
-                          }
-
-                          // Add closed block if hour extends past closing time
-                          if (effectiveEnd < 60) {
-                            blocks.push({
-                              type: "closed",
-                              start: effectiveEnd,
-                              end: 60,
-                            });
-                          }
-
-                          // Build gradient string
-                          let gradientStops = [];
-                          let currentPercent = 0;
-                          for (const block of blocks) {
-                            const blockPercent =
-                              ((block.end - block.start) / 60) * 100;
-                            let color;
-                            if (block.type === "available") color = "#10b981";
-                            else if (block.type === "booked") color = "#ef4444";
-                            else color = "#0a0a0a"; // closed
-
-                            gradientStops.push(`${color} ${currentPercent}%`);
-                            currentPercent += blockPercent;
-                            gradientStops.push(`${color} ${currentPercent}%`);
-                          }
-
-                          // Create labels for each block segment
-                          const blockLabels = blocks.map((block, index) => {
-                            const startMin = time.hour * 60 + block.start;
-                            const hours = Math.floor(startMin / 60);
-                            const mins = startMin % 60;
-                            const displayHour =
-                              hours === 0
-                                ? 12
-                                : hours > 12
-                                ? hours - 12
-                                : hours;
-                            const ampm = hours >= 12 ? "PM" : "AM";
-                            const timeStr = `${displayHour}:${mins
-                              .toString()
-                              .padStart(2, "0")} ${ampm}`;
-
-                            let label;
-                            if (block.type === "available") {
-                              label = `Available at ${timeStr}`;
-                            } else if (block.type === "booked") {
-                              label = `Booked at ${timeStr}`;
-                            } else {
-                              label = `Closed`;
+                            // Add closed block if hour extends past closing time
+                            if (effectiveEnd < 60) {
+                              blocks.push({
+                                type: "closed",
+                                start: effectiveEnd,
+                                end: 60,
+                              });
                             }
 
-                            const topPosition = (block.start / 60) * 100;
-                            return { label, topPosition, type: block.type };
-                          });
+                            // Build gradient string
+                            let gradientStops = [];
+                            let currentPercent = 0;
+                            for (const block of blocks) {
+                              const blockPercent =
+                                ((block.end - block.start) / 60) * 100;
+                              let color;
+                              if (block.type === "available") color = "#10b981";
+                              else if (block.type === "booked")
+                                color = "#ef4444";
+                              else color = "#0a0a0a"; // closed
 
-                          return (
-                            <div
-                              key={`${time.label}-${user._id}`}
-                              style={{
-                                padding: "0",
-                                borderBottom: "1px solid #333333",
-                                borderLeft: "1px solid #333333",
-                                minHeight: "55px",
-                                background:
-                                  blocks.length === 1 &&
-                                  blocks[0].type === "available"
-                                    ? "linear-gradient(145deg, #10b981, #059669)"
-                                    : blocks.length === 1 &&
-                                      blocks[0].type === "booked"
-                                    ? "linear-gradient(145deg, #ef4444, #dc2626)"
-                                    : blocks.length === 1 &&
-                                      blocks[0].type === "closed"
-                                    ? "linear-gradient(145deg, #0a0a0a, #000000)"
-                                    : `linear-gradient(180deg, ${gradientStops.join(
-                                        ", "
-                                      )})`,
-                                position: "relative",
-                              }}
-                            >
-                              {blockLabels.map((blockLabel, index) => (
-                                <div
-                                  key={index}
-                                  style={{
-                                    position: "absolute",
-                                    top: `${blockLabel.topPosition}%`,
-                                    left: "2px",
-                                    right: "2px",
-                                    fontSize: "7px",
-                                    color: "#ffffff",
-                                    fontWeight: "500",
-                                    textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                                    textAlign: "center",
-                                    lineHeight: "1.2",
-                                    paddingTop: "2px",
-                                  }}
-                                >
-                                  {blockLabel.label}
-                                </div>
-                              ))}
-                            </div>
-                          );
+                              gradientStops.push(`${color} ${currentPercent}%`);
+                              currentPercent += blockPercent;
+                              gradientStops.push(`${color} ${currentPercent}%`);
+                            }
+
+                            // Create labels for each block segment
+                            const blockLabels = blocks.map((block, index) => {
+                              const startMin = time.hour * 60 + block.start;
+                              const hours = Math.floor(startMin / 60);
+                              const mins = startMin % 60;
+                              const displayHour =
+                                hours === 0
+                                  ? 12
+                                  : hours > 12
+                                  ? hours - 12
+                                  : hours;
+                              const ampm = hours >= 12 ? "PM" : "AM";
+                              const timeStr = `${displayHour}:${mins
+                                .toString()
+                                .padStart(2, "0")} ${ampm}`;
+
+                              let label;
+                              if (block.type === "available") {
+                                label = `Available at ${timeStr}`;
+                              } else if (block.type === "booked") {
+                                label = `Booked at ${timeStr}`;
+                              } else {
+                                label = `Closed`;
+                              }
+
+                              const topPosition = (block.start / 60) * 100;
+                              return { label, topPosition, type: block.type };
+                            });
+
+                            return (
+                              <div
+                                key={`${time.label}-${user._id}`}
+                                style={{
+                                  padding: "0",
+                                  borderBottom: "1px solid #333333",
+                                  borderLeft: "1px solid #333333",
+                                  minHeight: "55px",
+                                  background:
+                                    blocks.length === 1 &&
+                                    blocks[0].type === "available"
+                                      ? "linear-gradient(145deg, #10b981, #059669)"
+                                      : blocks.length === 1 &&
+                                        blocks[0].type === "booked"
+                                      ? "linear-gradient(145deg, #ef4444, #dc2626)"
+                                      : blocks.length === 1 &&
+                                        blocks[0].type === "closed"
+                                      ? "linear-gradient(145deg, #0a0a0a, #000000)"
+                                      : `linear-gradient(180deg, ${gradientStops.join(
+                                          ", "
+                                        )})`,
+                                  position: "relative",
+                                }}
+                              >
+                                {blockLabels.map((blockLabel, index) => (
+                                  <div
+                                    key={index}
+                                    style={{
+                                      position: "absolute",
+                                      top: `${blockLabel.topPosition}%`,
+                                      left: "2px",
+                                      right: "2px",
+                                      fontSize: "7px",
+                                      color: "#ffffff",
+                                      fontWeight: "500",
+                                      textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                                      textAlign: "center",
+                                      lineHeight: "1.2",
+                                      paddingTop: "2px",
+                                    }}
+                                  >
+                                    {blockLabel.label}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
                         }
-                      }
 
-                      return (
-                        <div
-                          key={`${time.label}-${user._id}`}
-                          style={{
-                            paddingTop: "4px",
-                            paddingRight: "0",
-                            paddingBottom: "0",
-                            paddingLeft: "0",
-                            borderBottom: "1px solid #333333",
-                            borderLeft: "1px solid #333333",
-                            minHeight: "55px",
-                            background:
-                              "linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 100%)",
-                            display: "flex",
-                            alignItems: "flex-start",
-                            justifyContent: "center",
-                            fontSize: "8px",
-                            color: "#666666",
-                            fontWeight: "500",
-                          }}
-                        >
+                        return (
                           <div
+                            key={`${time.label}-${user._id}`}
                             style={{
-                              textAlign: "center",
-                              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                              lineHeight: "1.2",
+                              paddingTop: "4px",
+                              paddingRight: "0",
+                              paddingBottom: "0",
+                              paddingLeft: "0",
+                              borderBottom: "1px solid #333333",
+                              borderLeft: "1px solid #333333",
+                              minHeight: "55px",
+                              background:
+                                "linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 100%)",
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "center",
+                              fontSize: "8px",
+                              color: "#666666",
+                              fontWeight: "500",
                             }}
                           >
-                            Closed
+                            <div
+                              style={{
+                                textAlign: "center",
+                                textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                                lineHeight: "1.2",
+                              }}
+                            >
+                              Closed
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                </React.Fragment>
-              ))}
+                        );
+                      })}
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
