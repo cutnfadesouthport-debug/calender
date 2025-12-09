@@ -1,5 +1,5 @@
-import Admin from "../../../models/Admin";
-import dbConnect from "../../../lib/mongodb";
+import Admin from "../../../../models/Admin";
+import dbConnect from "../../../../lib/mongodb";
 
 export async function POST(request) {
   try {
