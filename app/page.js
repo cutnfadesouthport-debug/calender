@@ -979,11 +979,18 @@ export default function Home() {
                                 .toString()
                                 .padStart(2, "0")} ${ampm}`;
 
+                              const blockDuration = block.end - block.start;
                               let label;
                               if (block.type === "available") {
-                                label = `Available at ${timeStr}`;
+                                label =
+                                  blockDuration <= 15
+                                    ? ""
+                                    : `Available at ${timeStr}`;
                               } else if (block.type === "booked") {
-                                label = `Booked at ${timeStr}`;
+                                label =
+                                  blockDuration <= 15
+                                    ? ""
+                                    : `Booked at ${timeStr}`;
                               } else {
                                 label = `Closed`;
                               }
@@ -996,6 +1003,7 @@ export default function Home() {
                                 topPosition,
                                 blockHeight,
                                 type: block.type,
+                                duration: blockDuration,
                               };
                             });
 
