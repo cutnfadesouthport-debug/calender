@@ -700,9 +700,14 @@ export default function Home() {
                     "saturday",
                   ];
                   const today = dayNames[getTodayInfo().dayOfWeek];
-                  const todaySchedule = schedule?.find((s) =>
-                    s.rules?.some((rule) => rule.day === today)
-                  );
+
+                  // Get schedule data from the schedules array
+                  const todaySchedule = Array.isArray(schedule?.schedules)
+                    ? schedule.schedules[0]
+                    : Array.isArray(schedule)
+                    ? schedule[0]
+                    : schedule;
+
                   const todayRule = todaySchedule?.rules?.find(
                     (rule) => rule.day === today
                   );
@@ -806,115 +811,155 @@ export default function Home() {
                           "saturday",
                         ];
                         const today = dayNames[getTodayInfo().dayOfWeek];
-                        const todaySchedule = schedule?.find((s) =>
-                          s.rules?.some((rule) => rule.day === today)
-                        );
+
+                        // Get schedule data from the schedules array
+                        const todaySchedule = Array.isArray(schedule?.schedules)
+                          ? schedule.schedules[0]
+                          : Array.isArray(schedule)
+                          ? schedule[0]
+                          : schedule;
+
                         const todayRule = todaySchedule?.rules?.find(
                           (rule) => rule.day === today
                         );
 
-                        let openingHours = null;
-                        if (todayRule?.intervals) {
-                          // For simplicity, use first interval as main opening hours
-                          const interval = todayRule.intervals[0];
-                          openingHours = {
-                            openTime: interval.from,
-                            closeTime: interval.to,
-                          };
+                        // Get all intervals for today
+                        let allIntervals = [];
+                        if (
+                          todayRule?.intervals &&
+                          todayRule.intervals.length > 0
+                        ) {
+                          allIntervals = todayRule.intervals;
                         }
 
-                        // Log user data
-                        console.log(`\n=== ${user.name} (${user.userId}) ===`);
-                        console.log("Opening Hours:", openingHours);
-                        console.log(
-                          "User Events:",
-                          userSpecificEvents.map((e) => ({
-                            title: e.title,
-                            start: e.startTime.split("T")[1].split("+")[0],
-                            end: e.endTime.split("T")[1].split("+")[0],
-                            assignedUserId: e.assignedUserId,
-                          }))
-                        );
+                        // If no opening hours found, show closed
+                        if (allIntervals.length === 0) {
+                          return (
+                            <div
+                              key={`${time.label}-${user._id}`}
+                              style={{
+                                paddingTop: "4px",
+                                paddingRight: "0",
+                                paddingBottom: "0",
+                                paddingLeft: "0",
+                                borderBottom: "1px solid #333333",
+                                borderLeft: "1px solid #333333",
+                                minHeight: "55px",
+                                background:
+                                  "linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "12px",
+                                color: "#666666",
+                                fontWeight: "600",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  textAlign: "center",
+                                  textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                                  lineHeight: "1.2",
+                                }}
+                              >
+                                Closed
+                              </div>
+                            </div>
+                          );
+                        }
 
-                        // Calculate available slots for this hour
-                        const hourSlots = [];
-                        if (openingHours) {
-                          const hourStart = `${time.hour
-                            .toString()
-                            .padStart(2, "0")}:00`;
-                          const hourEnd = `${(time.hour + 1)
-                            .toString()
-                            .padStart(2, "0")}:00`;
+                        // Check if this hour falls within any opening interval
+                        const hourStartMin = time.hour * 60;
+                        const hourEndMin = (time.hour + 1) * 60;
 
-                          // Check if this hour falls within opening hours
-                          const hourStartMin = time.hour * 60;
+                        let isWithinHours = false;
+                        let effectiveOpenMin = null;
+                        let effectiveCloseMin = null;
+
+                        // Check each interval to see if hour overlaps
+                        for (const interval of allIntervals) {
                           const openMin =
-                            parseInt(openingHours.openTime.split(":")[0]) * 60 +
-                            parseInt(openingHours.openTime.split(":")[1]);
+                            parseInt(interval.from.split(":")[0]) * 60 +
+                            parseInt(interval.from.split(":")[1]);
                           const closeMin =
-                            parseInt(openingHours.closeTime.split(":")[0]) *
-                              60 +
-                            parseInt(openingHours.closeTime.split(":")[1]);
+                            parseInt(interval.to.split(":")[0]) * 60 +
+                            parseInt(interval.to.split(":")[1]);
 
-                          // Check if hour is within opening hours or partially overlaps
-                          const hourEndMin = (time.hour + 1) * 60;
-                          const isWithinHours =
-                            hourStartMin < closeMin && hourEndMin > openMin;
+                          if (hourStartMin < closeMin && hourEndMin > openMin) {
+                            isWithinHours = true;
+                            effectiveOpenMin = Math.max(hourStartMin, openMin);
+                            effectiveCloseMin = Math.min(hourEndMin, closeMin);
+                            break;
+                          }
+                        }
 
-                          if (isWithinHours) {
-                            // Find events that overlap with this hour
-                            const hourStartMinute = time.hour * 60;
-                            const hourEndMinute = (time.hour + 1) * 60;
+                        if (isWithinHours) {
+                          // Find events that overlap with this hour
+                          const hourStartMinute = time.hour * 60;
+                          const hourEndMinute = (time.hour + 1) * 60;
 
-                            // Build time blocks for this hour
-                            const blocks = [];
-                            let currentMin = 0;
+                          // Build time blocks for this hour
+                          const blocks = [];
+                          let currentMin = Math.max(
+                            0,
+                            effectiveOpenMin - hourStartMinute
+                          );
 
-                            // Sort events by start time
-                            const sortedEvents = [...userSpecificEvents]
-                              .map((event) => {
-                                const [startHour, startMin] = event.startTime
-                                  .split("T")[1]
-                                  .split("+")[0]
-                                  .split(":")
-                                  .map(Number);
-                                const [endHour, endMin] = event.endTime
-                                  .split("T")[1]
-                                  .split("+")[0]
-                                  .split(":")
-                                  .map(Number);
-                                return {
-                                  startMinute: startHour * 60 + startMin,
-                                  endMinute: endHour * 60 + endMin,
-                                };
-                              })
-                              .filter(
-                                (e) =>
-                                  e.startMinute < hourEndMinute &&
-                                  e.endMinute > hourStartMinute
-                              )
-                              .sort((a, b) => a.startMinute - b.startMinute);
+                          // Sort events by start time
+                          const sortedEvents = [...userSpecificEvents]
+                            .map((event) => {
+                              const [startHour, startMin] = event.startTime
+                                .split("T")[1]
+                                .split("+")[0]
+                                .split(":")
+                                .map(Number);
+                              const [endHour, endMin] = event.endTime
+                                .split("T")[1]
+                                .split("+")[0]
+                                .split(":")
+                                .map(Number);
+                              return {
+                                startMinute: startHour * 60 + startMin,
+                                endMinute: endHour * 60 + endMin,
+                              };
+                            })
+                            .filter(
+                              (e) =>
+                                e.startMinute < hourEndMinute &&
+                                e.endMinute > hourStartMinute
+                            )
+                            .sort((a, b) => a.startMinute - b.startMinute);
 
-                            for (const event of sortedEvents) {
-                              const eventStartInHour = Math.max(
-                                0,
-                                event.startMinute - hourStartMinute
-                              );
-                              const eventEndInHour = Math.min(
-                                60,
-                                event.endMinute - hourStartMinute
-                              );
+                          // Add closed block at start if hour starts before opening
+                          if (effectiveOpenMin > hourStartMinute) {
+                            blocks.push({
+                              type: "closed",
+                              start: 0,
+                              end: effectiveOpenMin - hourStartMinute,
+                            });
+                          }
 
-                              // Add available block before event
-                              if (currentMin < eventStartInHour) {
-                                blocks.push({
-                                  type: "available",
-                                  start: currentMin,
-                                  end: eventStartInHour,
-                                });
-                              }
+                          for (const event of sortedEvents) {
+                            const eventStartInHour = Math.max(
+                              currentMin,
+                              event.startMinute - hourStartMinute
+                            );
+                            const eventEndInHour = Math.min(
+                              60,
+                              event.endMinute - hourStartMinute
+                            );
 
-                              // Add booked block
+                            // Add available block before event
+                            if (currentMin < eventStartInHour) {
+                              blocks.push({
+                                type: "available",
+                                start: currentMin,
+                                end: eventStartInHour,
+                              });
+                            }
+
+                            // Add booked block
+                            if (eventStartInHour < eventEndInHour) {
                               blocks.push({
                                 type: "booked",
                                 start: eventStartInHour,
@@ -922,158 +967,162 @@ export default function Home() {
                               });
                               currentMin = eventEndInHour;
                             }
-
-                            // Handle remaining time based on closing hour
-                            const effectiveEnd = Math.min(
-                              60,
-                              closeMin - hourStartMinute
-                            );
-
-                            if (currentMin < effectiveEnd) {
-                              blocks.push({
-                                type: "available",
-                                start: currentMin,
-                                end: effectiveEnd,
-                              });
-                            }
-
-                            // Add closed block if hour extends past closing time
-                            if (effectiveEnd < 60) {
-                              blocks.push({
-                                type: "closed",
-                                start: effectiveEnd,
-                                end: 60,
-                              });
-                            }
-
-                            // Build gradient string
-                            let gradientStops = [];
-                            let currentPercent = 0;
-                            for (const block of blocks) {
-                              const blockPercent =
-                                ((block.end - block.start) / 60) * 100;
-                              let color;
-                              if (block.type === "available") color = "#10b981";
-                              else if (block.type === "booked")
-                                color = "#ef4444";
-                              else color = "#0a0a0a"; // closed
-
-                              gradientStops.push(`${color} ${currentPercent}%`);
-                              currentPercent += blockPercent;
-                              gradientStops.push(`${color} ${currentPercent}%`);
-                            }
-
-                            // Create labels for each block segment
-                            const blockLabels = blocks.map((block, index) => {
-                              const startMin = time.hour * 60 + block.start;
-                              const hours = Math.floor(startMin / 60);
-                              const mins = startMin % 60;
-                              const displayHour =
-                                hours === 0
-                                  ? 12
-                                  : hours > 12
-                                  ? hours - 12
-                                  : hours;
-                              const ampm = hours >= 12 ? "PM" : "AM";
-                              const timeStr = `${displayHour}:${mins
-                                .toString()
-                                .padStart(2, "0")} ${ampm}`;
-
-                              const blockDuration = block.end - block.start;
-                              let label;
-                              if (block.type === "available") {
-                                label =
-                                  blockDuration <= 15
-                                    ? ""
-                                    : `Available at ${timeStr}`;
-                              } else if (block.type === "booked") {
-                                label =
-                                  blockDuration <= 15
-                                    ? ""
-                                    : `Booked at ${timeStr}`;
-                              } else {
-                                label = `Closed`;
-                              }
-
-                              const topPosition = (block.start / 60) * 100;
-                              const blockHeight =
-                                ((block.end - block.start) / 60) * 100;
-                              return {
-                                label,
-                                topPosition,
-                                blockHeight,
-                                type: block.type,
-                                duration: blockDuration,
-                              };
-                            });
-
-                            return (
-                              <div
-                                key={`${time.label}-${user._id}`}
-                                style={{
-                                  padding: "0",
-                                  borderBottom: "1px solid #333333",
-                                  borderLeft: "1px solid #333333",
-                                  minHeight: "55px",
-                                  background:
-                                    blocks.length === 1 &&
-                                    blocks[0].type === "available"
-                                      ? "linear-gradient(145deg, #10b981, #059669)"
-                                      : blocks.length === 1 &&
-                                        blocks[0].type === "booked"
-                                      ? "linear-gradient(145deg, #ef4444, #dc2626)"
-                                      : blocks.length === 1 &&
-                                        blocks[0].type === "closed"
-                                      ? "linear-gradient(145deg, #0a0a0a, #000000)"
-                                      : `linear-gradient(180deg, ${gradientStops.join(
-                                          ", "
-                                        )})`,
-                                  position: "relative",
-                                }}
-                              >
-                                {blockLabels.map((blockLabel, index) => (
-                                  <div
-                                    key={index}
-                                    style={{
-                                      position: "absolute",
-                                      top: `${blockLabel.topPosition}%`,
-                                      left: "2px",
-                                      right: "2px",
-                                      height: `${blockLabel.blockHeight}%`,
-                                      fontSize: "12px",
-                                      color: "#ffffff",
-                                      fontWeight: "600",
-                                      textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      textAlign: "center",
-                                      lineHeight: "1.2",
-                                      cursor:
-                                        blockLabel.type === "available"
-                                          ? "pointer"
-                                          : "default",
-                                    }}
-                                    title={
-                                      blockLabel.type === "available"
-                                        ? "Click to go to booking page"
-                                        : ""
-                                    }
-                                    onClick={() => {
-                                      if (blockLabel.type === "available") {
-                                        window.open(
-                                          "https://cutnfade.com.au/booking",
-                                          "_blank"
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    {blockLabel.label}
-                                  </div>
-                                ))}
-                              </div>
-                            );
                           }
+
+                          // Handle remaining time based on closing hour
+                          const effectiveEnd = Math.min(
+                            60,
+                            effectiveCloseMin - hourStartMinute
+                          );
+
+                          if (currentMin < effectiveEnd) {
+                            blocks.push({
+                              type: "available",
+                              start: currentMin,
+                              end: effectiveEnd,
+                            });
+                          }
+
+                          // Add closed block if hour extends past closing time
+                          if (effectiveEnd < 60) {
+                            blocks.push({
+                              type: "closed",
+                              start: effectiveEnd,
+                              end: 60,
+                            });
+                          }
+
+                          // If no blocks were created, show as closed
+                          if (blocks.length === 0) {
+                            blocks.push({ type: "closed", start: 0, end: 60 });
+                          }
+
+                          // Build gradient string
+                          let gradientStops = [];
+                          let currentPercent = 0;
+                          for (const block of blocks) {
+                            const blockPercent =
+                              ((block.end - block.start) / 60) * 100;
+                            let color;
+                            if (block.type === "available") color = "#10b981";
+                            else if (block.type === "booked") color = "#ef4444";
+                            else color = "#0a0a0a"; // closed
+
+                            gradientStops.push(`${color} ${currentPercent}%`);
+                            currentPercent += blockPercent;
+                            gradientStops.push(`${color} ${currentPercent}%`);
+                          }
+
+                          // Create labels for each block segment
+                          const blockLabels = blocks.map((block, index) => {
+                            const startMin = time.hour * 60 + block.start;
+                            const hours = Math.floor(startMin / 60);
+                            const mins = startMin % 60;
+                            const displayHour =
+                              hours === 0
+                                ? 12
+                                : hours > 12
+                                ? hours - 12
+                                : hours;
+                            const ampm = hours >= 12 ? "PM" : "AM";
+                            const timeStr = `${displayHour}:${mins
+                              .toString()
+                              .padStart(2, "0")} ${ampm}`;
+
+                            const blockDuration = block.end - block.start;
+                            let label;
+                            if (block.type === "available") {
+                              label =
+                                blockDuration <= 15
+                                  ? ""
+                                  : `Available at ${timeStr}`;
+                            } else if (block.type === "booked") {
+                              label =
+                                blockDuration <= 15
+                                  ? ""
+                                  : `Booked at ${timeStr}`;
+                            } else {
+                              label = `Closed`;
+                            }
+
+                            const topPosition = (block.start / 60) * 100;
+                            const blockHeight =
+                              ((block.end - block.start) / 60) * 100;
+                            return {
+                              label,
+                              topPosition,
+                              blockHeight,
+                              type: block.type,
+                              duration: blockDuration,
+                            };
+                          });
+
+                          return (
+                            <div
+                              key={`${time.label}-${user._id}`}
+                              style={{
+                                padding: "0",
+                                borderBottom: "1px solid #333333",
+                                borderLeft: "1px solid #333333",
+                                minHeight: "55px",
+                                background:
+                                  blocks.length === 1 &&
+                                  blocks[0].type === "available"
+                                    ? "linear-gradient(145deg, #10b981, #059669)"
+                                    : blocks.length === 1 &&
+                                      blocks[0].type === "booked"
+                                    ? "linear-gradient(145deg, #ef4444, #dc2626)"
+                                    : blocks.length === 1 &&
+                                      blocks[0].type === "closed"
+                                    ? "linear-gradient(145deg, #0a0a0a, #000000)"
+                                    : `linear-gradient(180deg, ${gradientStops.join(
+                                        ", "
+                                      )})`,
+                                position: "relative",
+                              }}
+                            >
+                              {blockLabels.map((blockLabel, index) => (
+                                <div
+                                  key={index}
+                                  style={{
+                                    position: "absolute",
+                                    top: `${blockLabel.topPosition}%`,
+                                    left: "2px",
+                                    right: "2px",
+                                    height: `${blockLabel.blockHeight}%`,
+                                    fontSize: "12px",
+                                    color: "#ffffff",
+                                    fontWeight: "600",
+                                    textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    textAlign: "center",
+                                    lineHeight: "1.2",
+                                    cursor:
+                                      blockLabel.type === "available"
+                                        ? "pointer"
+                                        : "default",
+                                  }}
+                                  title={
+                                    blockLabel.type === "available"
+                                      ? "Click to go to booking page"
+                                      : ""
+                                  }
+                                  onClick={() => {
+                                    if (blockLabel.type === "available") {
+                                      window.open(
+                                        "https://cutnfade.com.au/booking",
+                                        "_blank"
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {blockLabel.label}
+                                </div>
+                              ))}
+                            </div>
+                          );
                         }
 
                         return (
