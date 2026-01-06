@@ -17,7 +17,7 @@ export async function GET() {
       'https://services.leadconnectorhq.com/calendars/?locationId=HJMdGIrc4MORK1Ts5Wru',
       {
         headers: {
-          'Authorization': 'Bearer pit-f5571c91-b185-4028-b181-7eca7b39e9a3',
+          'Authorization': 'Bearer pit-1f34f990-ea4f-44c9-8ee2-e4e5a500212f',
           'Version': '2021-04-15',
         },
       }
